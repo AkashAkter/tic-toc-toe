@@ -1,69 +1,114 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import React from 'react';
+import { useTicTacToe } from '@/hooks/useTicTacToe';
+import { GameBoard } from '@/components/GameBoard';
+import { ScoreBoard } from '@/components/ScoreBoard';
+import { GameStatus } from '@/components/GameStatus';
+import { DifficultySelector } from '@/components/DifficultySelector';
+import { Controls } from '@/components/Controls';
+import { GameResultModal } from '@/components/GameResultModal';
+import { Gamepad2, Sparkles } from 'lucide-react';
+
+export default function TicTacToePage() {
+  const {
+    board,
+    turn,
+    gameStatus,
+    winningLine,
+    scores,
+    preferences,
+    showResultModal,
+    handleCellClick,
+    restartMatch,
+    resetScores,
+    setDifficulty,
+    setStartingPlayer,
+    toggleSound,
+    closeResultModal,
+  } = useTicTacToe();
+
+  const isBoardDisabled = gameStatus === 'thinking' || gameStatus === 'won' || gameStatus === 'draw';
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="min-h-screen bg-[#040407] bg-arcade-grid flex flex-col justify-between py-6 px-4 relative overflow-hidden select-none">
+      {/* Subtle Ambient Background Glow Orbs */}
+      <div className="absolute top-1/4 -left-32 w-80 h-80 rounded-full bg-cyan-600/10 blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-32 w-80 h-80 rounded-full bg-orange-600/10 blur-[100px] pointer-events-none" />
+
+      {/* Top Header */}
+      <header className="w-full max-w-md mx-auto text-center flex flex-col items-center">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-semibold text-slate-400 mb-2.5 tracking-wider uppercase">
+          <Gamepad2 className="w-3.5 h-3.5 text-cyan-400" />
+          <span>Arcade Edition</span>
+          <Sparkles className="w-3 h-3 text-orange-400 ml-0.5" />
+        </div>
+
+        <h1 className="text-3xl sm:text-4xl font-black tracking-tight flex items-center justify-center gap-2">
+          <span className="neon-text-x">TIC</span>
+          <span className="text-slate-600 font-light">✕</span>
+          <span className="text-slate-200">TAC</span>
+          <span className="text-slate-600 font-light">○</span>
+          <span className="neon-text-o">TOE</span>
+        </h1>
+        <p className="text-xs text-slate-400/80 mt-1">
+          Player <span className="text-cyan-400 font-semibold">(X)</span> vs Computer <span className="text-orange-400 font-semibold">(O)</span>
+        </p>
+      </header>
+
+      {/* Core Game Arena */}
+      <div className="w-full max-w-md mx-auto my-auto flex flex-col gap-4 sm:gap-5">
+        {/* Score Board */}
+        <ScoreBoard scores={scores} onResetScores={resetScores} />
+
+        {/* Difficulty Selector */}
+        <DifficultySelector
+          difficulty={preferences.difficulty}
+          onChange={setDifficulty}
+          isDisabled={gameStatus === 'thinking'}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+
+        {/* Controls Bar (First player, Sound, Restart) */}
+        <Controls
+          startingPlayer={preferences.startingPlayer}
+          soundEnabled={preferences.soundEnabled}
+          isDisabled={gameStatus === 'thinking'}
+          onRestart={restartMatch}
+          onToggleStartingPlayer={setStartingPlayer}
+          onToggleSound={toggleSound}
+        />
+
+        {/* Dynamic Game Turn / Outcome Status */}
+        <GameStatus
+          status={gameStatus}
+          turn={turn}
+          winningLine={winningLine}
+        />
+
+        {/* Interactive 3x3 Game Board */}
+        <GameBoard
+          board={board}
+          winningLine={winningLine}
+          isDisabled={isBoardDisabled}
+          onCellClick={handleCellClick}
+        />
+      </div>
+
+      {/* Footer */}
+      <footer className="w-full max-w-md mx-auto text-center pt-4">
+        <div className="text-[11px] text-slate-500 font-mono">
+          Pure Client-side Minimax AI &bull; Web Audio Synthesis
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </footer>
+
+      {/* Victory / Defeat / Draw Modal */}
+      <GameResultModal
+        isOpen={showResultModal}
+        gameStatus={gameStatus}
+        winner={winningLine?.winner || null}
+        onPlayAgain={restartMatch}
+        onClose={closeResultModal}
+      />
+    </main>
   );
 }

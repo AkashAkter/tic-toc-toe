@@ -16,7 +16,6 @@ import { checkWinner, isBoardFull } from '@/lib/gameLogic';
 import { getComputerMove } from '@/lib/minimax';
 import { sound } from '@/lib/sound';
 import {
-  DEFAULT_PREFERENCES,
   DEFAULT_SCORES,
   loadPreferences,
   loadScores,
@@ -31,46 +30,13 @@ export function useTicTacToe() {
   const [turn, setTurn] = useState<Player>('X'); // X is Player, O is Computer
   const [gameStatus, setGameStatus] = useState<GameStatus>('playing');
   const [winningLine, setWinningLine] = useState<WinningLine | null>(null);
-  const [scores, setScores] = useState<ScoreState>(DEFAULT_SCORES);
-  const [preferences, setPreferences] = useState<GamePreferences>(DEFAULT_PREFERENCES);
+  const [scores, setScores] = useState<ScoreState>(() => loadScores());
+  const [preferences, setPreferences] = useState<GamePreferences>(() => loadPreferences());
   const [showResultModal, setShowResultModal] = useState<boolean>(false);
-  const [isClientLoaded, setIsClientLoaded] = useState<boolean>(false);
 
   const computerThinkingTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize stored state on client load
-  useEffect(() => {
-    const storedScores = loadScores();
-    const storedPrefs = loadPreferences();
-    setScores(storedScores);
-    setPreferences(storedPrefs);
-    sound.setSoundEnabled(storedPrefs.soundEnabled);
-    setIsClientLoaded(true);
-
-    // If starting player preference is computer, trigger computer move
-    if (storedPrefs.startingPlayer === 'computer') {
-      triggerComputerOpening(storedPrefs.difficulty);
-    }
-  }, []);
-
-  // Sync sound setting whenever preferences change
-  useEffect(() => {
-    sound.setSoundEnabled(preferences.soundEnabled);
-    if (isClientLoaded) {
-      savePreferences(preferences);
-    }
-  }, [preferences, isClientLoaded]);
-
-  // Clean up any pending timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (computerThinkingTimeout.current) {
-        clearTimeout(computerThinkingTimeout.current);
-      }
-    };
-  }, []);
-
-  const triggerVictoryConfetti = () => {
+  const triggerVictoryConfetti = useCallback(() => {
     try {
       confetti({
         particleCount: 80,
@@ -81,7 +47,7 @@ export function useTicTacToe() {
     } catch {
       // Confetti fallback safely ignored
     }
-  };
+  }, []);
 
   /**
    * Helper to handle match finalization
@@ -129,8 +95,28 @@ export function useTicTacToe() {
         setShowResultModal(true);
       }, 550);
     },
-    []
+    [triggerVictoryConfetti]
   );
+
+  /**
+   * Starts game when computer makes the opening move
+   */
+  const triggerComputerOpening = useCallback((difficulty: Difficulty) => {
+    computerThinkingTimeout.current = setTimeout(() => {
+      setTurn('O');
+      setGameStatus('thinking');
+
+      computerThinkingTimeout.current = setTimeout(() => {
+        const move = getComputerMove(INITIAL_BOARD, difficulty, 'O', 'X');
+        const newBoard = [...INITIAL_BOARD];
+        newBoard[move] = 'O';
+        sound.playMoveO();
+        setBoard(newBoard);
+        setTurn('X');
+        setGameStatus('playing');
+      }, 500);
+    }, 50);
+  }, []);
 
   /**
    * Triggers the computer move calculation with simulated thinking delay
@@ -166,23 +152,30 @@ export function useTicTacToe() {
     [handleGameEnd]
   );
 
-  /**
-   * Starts game when computer makes the opening move
-   */
-  const triggerComputerOpening = (difficulty: Difficulty) => {
-    setTurn('O');
-    setGameStatus('thinking');
-    const delay = 500;
-    computerThinkingTimeout.current = setTimeout(() => {
-      const move = getComputerMove(INITIAL_BOARD, difficulty, 'O', 'X');
-      const newBoard = [...INITIAL_BOARD];
-      newBoard[move] = 'O';
-      sound.playMoveO();
-      setBoard(newBoard);
-      setTurn('X');
-      setGameStatus('playing');
-    }, delay);
-  };
+  // Initialize opening move if computer is configured to play first
+  useEffect(() => {
+    sound.setSoundEnabled(preferences.soundEnabled);
+    if (preferences.startingPlayer === 'computer') {
+      triggerComputerOpening(preferences.difficulty);
+    }
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync preferences and sound
+  useEffect(() => {
+    sound.setSoundEnabled(preferences.soundEnabled);
+    savePreferences(preferences);
+  }, [preferences]);
+
+  // Clean up any pending timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (computerThinkingTimeout.current) {
+        clearTimeout(computerThinkingTimeout.current);
+      }
+    };
+  }, []);
 
   /**
    * Human player clicks a cell
@@ -239,7 +232,7 @@ export function useTicTacToe() {
       setTurn('X');
       setGameStatus('playing');
     }
-  }, [preferences.startingPlayer, preferences.difficulty]);
+  }, [preferences.startingPlayer, preferences.difficulty, triggerComputerOpening]);
 
   /**
    * Change difficulty setting
@@ -255,27 +248,22 @@ export function useTicTacToe() {
   const setStartingPlayer = useCallback(
     (startingPlayer: StartingPlayerOption) => {
       sound.playClick();
-      setPreferences((prev) => {
-        const next = { ...prev, startingPlayer };
-        return next;
-      });
-      // Restart game to honor new starting player
-      setTimeout(() => {
-        if (computerThinkingTimeout.current) {
-          clearTimeout(computerThinkingTimeout.current);
-        }
-        setBoard(INITIAL_BOARD);
-        setWinningLine(null);
-        setShowResultModal(false);
-        if (startingPlayer === 'computer') {
-          triggerComputerOpening(preferences.difficulty);
-        } else {
-          setTurn('X');
-          setGameStatus('playing');
-        }
-      }, 50);
+      setPreferences((prev) => ({ ...prev, startingPlayer }));
+
+      if (computerThinkingTimeout.current) {
+        clearTimeout(computerThinkingTimeout.current);
+      }
+      setBoard(INITIAL_BOARD);
+      setWinningLine(null);
+      setShowResultModal(false);
+      if (startingPlayer === 'computer') {
+        triggerComputerOpening(preferences.difficulty);
+      } else {
+        setTurn('X');
+        setGameStatus('playing');
+      }
     },
-    [preferences.difficulty]
+    [preferences.difficulty, triggerComputerOpening]
   );
 
   /**
@@ -314,7 +302,6 @@ export function useTicTacToe() {
     scores,
     preferences,
     showResultModal,
-    isClientLoaded,
     handleCellClick,
     restartMatch,
     resetScores,
