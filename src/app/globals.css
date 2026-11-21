@@ -1,26 +1,120 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #040407;
+  --foreground: #f1f5f9;
+  --color-x: #00f0ff;
+  --color-x-glow: rgba(0, 240, 255, 0.45);
+  --color-o: #ff7700;
+  --color-o-glow: rgba(255, 119, 0, 0.45);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Background Cyber/Arcade Ambient Glow & Grid */
+.bg-arcade-grid {
+  background-image: 
+    radial-gradient(circle at 50% 10%, rgba(0, 240, 255, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 50% 90%, rgba(255, 119, 0, 0.07) 0%, transparent 40%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+}
+
+/* Glassmorphism Surface */
+.glass-panel {
+  background: rgba(13, 14, 22, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+}
+
+.glass-panel-subtle {
+  background: rgba(18, 19, 30, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Neon Glow Utilities */
+.neon-text-x {
+  color: #00f0ff;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.8), 0 0 20px rgba(0, 240, 255, 0.4);
+}
+
+.neon-text-o {
+  color: #ff7700;
+  text-shadow: 0 0 10px rgba(255, 119, 0, 0.8), 0 0 20px rgba(255, 119, 0, 0.4);
+}
+
+.neon-box-x {
+  border-color: #00f0ff;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.35), inset 0 0 15px rgba(0, 240, 255, 0.15);
+}
+
+.neon-box-o {
+  border-color: #ff7700;
+  box-shadow: 0 0 20px rgba(255, 119, 0, 0.35), inset 0 0 15px rgba(255, 119, 0, 0.15);
+}
+
+.neon-box-draw {
+  border-color: #a855f7;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.35), inset 0 0 15px rgba(168, 85, 247, 0.15);
+}
+
+/* Winning cell animation */
+@keyframes win-pulse-x {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.5), inset 0 0 20px rgba(0, 240, 255, 0.3);
+    background-color: rgba(0, 240, 255, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(0, 240, 255, 0.9), inset 0 0 30px rgba(0, 240, 255, 0.5);
+    background-color: rgba(0, 240, 255, 0.28);
+  }
+}
+
+@keyframes win-pulse-o {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 119, 0, 0.5), inset 0 0 20px rgba(255, 119, 0, 0.3);
+    background-color: rgba(255, 119, 0, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(255, 119, 0, 0.9), inset 0 0 30px rgba(255, 119, 0, 0.5);
+    background-color: rgba(255, 119, 0, 0.28);
+  }
+}
+
+.cell-winning-x {
+  animation: win-pulse-x 1.5s ease-in-out infinite;
+  border-color: #00f0ff !important;
+}
+
+.cell-winning-o {
+  animation: win-pulse-o 1.5s ease-in-out infinite;
+  border-color: #ff7700 !important;
+}
+
+/* Custom smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #040407;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
