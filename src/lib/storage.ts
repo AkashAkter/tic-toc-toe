@@ -1,7 +1,7 @@
-import { Difficulty, GamePreferences, ScoreState, StartingPlayerOption } from '@/types/game';
+import { Difficulty, GameMode, GamePreferences, ScoreState, StartingPlayerOption, ThemeMode } from '@/types/game';
 
-const SCORE_STORAGE_KEY = 'arcade_tictactoe_scores';
-const PREF_STORAGE_KEY = 'arcade_tictactoe_prefs';
+const SCORE_STORAGE_KEY = 'boring_tictactoe_scores';
+const PREF_STORAGE_KEY = 'boring_tictactoe_prefs';
 
 export const DEFAULT_SCORES: ScoreState = {
   playerWins: 0,
@@ -10,9 +10,11 @@ export const DEFAULT_SCORES: ScoreState = {
 };
 
 export const DEFAULT_PREFERENCES: GamePreferences = {
+  gameMode: 'ai',
   difficulty: 'impossible',
   startingPlayer: 'player',
   soundEnabled: true,
+  theme: 'dark',
 };
 
 export function loadScores(): ScoreState {
@@ -47,6 +49,7 @@ export function loadPreferences(): GamePreferences {
     if (!raw) return DEFAULT_PREFERENCES;
     const parsed = JSON.parse(raw);
     return {
+      gameMode: (parsed.gameMode === 'pvp' ? 'pvp' : 'ai') as GameMode,
       difficulty: (['easy', 'medium', 'impossible'].includes(parsed.difficulty)
         ? parsed.difficulty
         : 'impossible') as Difficulty,
@@ -54,6 +57,7 @@ export function loadPreferences(): GamePreferences {
         ? parsed.startingPlayer
         : 'player') as StartingPlayerOption,
       soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : true,
+      theme: (parsed.theme === 'light' ? 'light' : 'dark') as ThemeMode,
     };
   } catch {
     return DEFAULT_PREFERENCES;

@@ -1,89 +1,129 @@
 'use client';
 
 import React from 'react';
-import { RotateCw, Volume2, VolumeX, User, Bot } from 'lucide-react';
-import { StartingPlayerOption } from '@/types/game';
+import { GameMode, StartingPlayerOption, ThemeMode } from '@/types/game';
 
 interface ControlsProps {
+  gameMode: GameMode;
   startingPlayer: StartingPlayerOption;
   soundEnabled: boolean;
+  theme: ThemeMode;
   isDisabled: boolean;
   onRestart: () => void;
+  onToggleGameMode: (mode: GameMode) => void;
   onToggleStartingPlayer: (player: StartingPlayerOption) => void;
   onToggleSound: () => void;
+  onToggleTheme: () => void;
 }
 
 export const Controls: React.FC<ControlsProps> = ({
+  gameMode,
   startingPlayer,
   soundEnabled,
+  theme,
   isDisabled,
   onRestart,
+  onToggleGameMode,
   onToggleStartingPlayer,
   onToggleSound,
+  onToggleTheme,
 }) => {
   return (
-    <div className="w-full max-w-[420px] mx-auto flex items-center justify-between gap-2.5">
-      {/* First Player Selector */}
-      <div className="flex items-center p-1 rounded-xl glass-panel border border-white/10 text-xs">
-        <button
-          type="button"
-          disabled={isDisabled}
-          onClick={() => onToggleStartingPlayer('player')}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-            startingPlayer === 'player'
-              ? 'bg-cyan-950/60 text-cyan-300 border border-cyan-500/50 shadow-[0_0_10px_rgba(0,240,255,0.3)]'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-          title="You make the first move"
-        >
-          <User className="w-3.5 h-3.5" />
-          <span>You First</span>
-        </button>
+    <div className="w-full font-mono text-xs flex flex-col gap-3">
+      {/* Game Mode */}
+      <div>
+        <div className="text-[11px] uppercase tracking-wider text-[var(--muted)] mb-1.5">
+          MODE
+        </div>
+        <div className="grid grid-cols-2 border border-theme divide-x divide-theme bg-[var(--bg)]">
+          <button
+            type="button"
+            disabled={isDisabled}
+            onClick={() => onToggleGameMode('ai')}
+            className={`py-2 px-2 text-center text-xs uppercase cursor-pointer transition-colors ${
+              gameMode === 'ai'
+                ? 'bg-[var(--active-bg)] text-[var(--active-fg)] font-bold'
+                : 'hover:bg-[var(--hover-bg)] text-[var(--fg)]'
+            }`}
+          >
+            {gameMode === 'ai' ? '• vs Computer' : 'vs Computer'}
+          </button>
 
-        <button
-          type="button"
-          disabled={isDisabled}
-          onClick={() => onToggleStartingPlayer('computer')}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-            startingPlayer === 'computer'
-              ? 'bg-orange-950/60 text-orange-400 border border-orange-500/50 shadow-[0_0_10px_rgba(255,119,0,0.3)]'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-          title="Computer makes the first move"
-        >
-          <Bot className="w-3.5 h-3.5" />
-          <span>CPU First</span>
-        </button>
+          <button
+            type="button"
+            disabled={isDisabled}
+            onClick={() => onToggleGameMode('pvp')}
+            className={`py-2 px-2 text-center text-xs uppercase cursor-pointer transition-colors ${
+              gameMode === 'pvp'
+                ? 'bg-[var(--active-bg)] text-[var(--active-fg)] font-bold'
+                : 'hover:bg-[var(--hover-bg)] text-[var(--fg)]'
+            }`}
+          >
+            {gameMode === 'pvp' ? '• 2 Players' : '2 Players'}
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        {/* Sound Effects Toggle */}
-        <button
-          type="button"
-          onClick={onToggleSound}
-          className={`p-2 rounded-xl glass-panel border border-white/10 transition-colors cursor-pointer ${
-            soundEnabled
-              ? 'text-cyan-400 hover:text-cyan-300 hover:border-cyan-500/40'
-              : 'text-slate-500 hover:text-slate-400'
-          }`}
-          title={soundEnabled ? 'Mute sound effects' : 'Unmute sound effects'}
-        >
-          {soundEnabled ? (
-            <Volume2 className="w-4 h-4" />
-          ) : (
-            <VolumeX className="w-4 h-4" />
-          )}
-        </button>
+      {/* Starting Turn (in AI mode) */}
+      {gameMode === 'ai' && (
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-[var(--muted)] mb-1.5">
+            OPENING TURN
+          </div>
+          <div className="grid grid-cols-2 border border-theme divide-x divide-theme bg-[var(--bg)]">
+            <button
+              type="button"
+              disabled={isDisabled}
+              onClick={() => onToggleStartingPlayer('player')}
+              className={`py-1.5 px-2 text-center text-xs uppercase cursor-pointer transition-colors ${
+                startingPlayer === 'player'
+                  ? 'bg-[var(--active-bg)] text-[var(--active-fg)] font-bold'
+                  : 'hover:bg-[var(--hover-bg)] text-[var(--fg)]'
+              }`}
+            >
+              {startingPlayer === 'player' ? '• You First (X)' : 'You First (X)'}
+            </button>
 
-        {/* Restart Match Button */}
+            <button
+              type="button"
+              disabled={isDisabled}
+              onClick={() => onToggleStartingPlayer('computer')}
+              className={`py-1.5 px-2 text-center text-xs uppercase cursor-pointer transition-colors ${
+                startingPlayer === 'computer'
+                  ? 'bg-[var(--active-bg)] text-[var(--active-fg)] font-bold'
+                  : 'hover:bg-[var(--hover-bg)] text-[var(--fg)]'
+              }`}
+            >
+              {startingPlayer === 'computer' ? '• CPU First (O)' : 'CPU First (O)'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Action Bar */}
+      <div className="grid grid-cols-3 border border-theme divide-x divide-theme bg-[var(--bg)]">
         <button
           type="button"
           onClick={onRestart}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-600/80 to-blue-600/80 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold text-xs transition-all shadow-[0_0_15px_rgba(0,240,255,0.25)] hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] cursor-pointer active:scale-95"
-          title="Restart match"
+          className="py-2 px-1 text-center text-xs uppercase font-bold hover:bg-[var(--hover-bg)] text-[var(--fg)] cursor-pointer"
         >
-          <RotateCw className="w-3.5 h-3.5" />
-          <span>Restart</span>
+          [Restart]
+        </button>
+
+        <button
+          type="button"
+          onClick={onToggleSound}
+          className="py-2 px-1 text-center text-xs uppercase hover:bg-[var(--hover-bg)] text-[var(--fg)] cursor-pointer"
+        >
+          {soundEnabled ? '[Sound: On]' : '[Sound: Off]'}
+        </button>
+
+        <button
+          type="button"
+          onClick={onToggleTheme}
+          className="py-2 px-1 text-center text-xs uppercase hover:bg-[var(--hover-bg)] text-[var(--fg)] cursor-pointer font-bold"
+        >
+          {theme === 'dark' ? '[☀ Light]' : '[☾ Dark]'}
         </button>
       </div>
     </div>

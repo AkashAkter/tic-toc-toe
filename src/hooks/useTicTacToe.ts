@@ -5,17 +5,20 @@ import confetti from 'canvas-confetti';
 import {
   BoardState,
   Difficulty,
+  GameMode,
   GamePreferences,
   GameStatus,
   Player,
   ScoreState,
   StartingPlayerOption,
+  ThemeMode,
   WinningLine,
 } from '@/types/game';
 import { checkWinner, isBoardFull } from '@/lib/gameLogic';
 import { getComputerMove } from '@/lib/minimax';
 import { sound } from '@/lib/sound';
 import {
+  DEFAULT_PREFERENCES,
   DEFAULT_SCORES,
   loadPreferences,
   loadScores,
@@ -27,11 +30,11 @@ const INITIAL_BOARD: BoardState = Array(9).fill(null);
 
 export function useTicTacToe() {
   const [board, setBoard] = useState<BoardState>(INITIAL_BOARD);
-  const [turn, setTurn] = useState<Player>('X'); // X is Player, O is Computer
+  const [turn, setTurn] = useState<Player>('X');
   const [gameStatus, setGameStatus] = useState<GameStatus>('playing');
   const [winningLine, setWinningLine] = useState<WinningLine | null>(null);
-  const [scores, setScores] = useState<ScoreState>(() => loadScores());
-  const [preferences, setPreferences] = useState<GamePreferences>(() => loadPreferences());
+  const [scores, setScores] = useState<ScoreState>(DEFAULT_SCORES);
+  const [preferences, setPreferences] = useState<GamePreferences>(DEFAULT_PREFERENCES);
   const [showResultModal, setShowResultModal] = useState<boolean>(false);
 
   const computerThinkingTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -39,21 +42,21 @@ export function useTicTacToe() {
   const triggerVictoryConfetti = useCallback(() => {
     try {
       confetti({
-        particleCount: 80,
-        spread: 70,
+        particleCount: 50,
+        spread: 60,
         origin: { y: 0.6 },
-        colors: ['#00f0ff', '#ff7700', '#ffffff', '#38bdf8'],
+        colors: ['#000000', '#ffffff', '#737373', '#a3a3a3'],
       });
     } catch {
-      // Confetti fallback safely ignored
+      // ignore
     }
   }, []);
 
   /**
-   * Helper to handle match finalization
+   * Finalize match outcome
    */
   const handleGameEnd = useCallback(
-    (winnerResult: WinningLine | null, isDraw: boolean) => {
+    (winnerResult: WinningLine | null, isDraw: boolean, currentMode: GameMode) => {
       if (computerThinkingTimeout.current) {
         clearTimeout(computerThinkingTimeout.current);
       }
@@ -61,19 +64,19 @@ export function useTicTacToe() {
       if (winnerResult) {
         setWinningLine(winnerResult);
         setGameStatus('won');
+        sound.playWin();
+        triggerVictoryConfetti();
 
         if (winnerResult.winner === 'X') {
-          // Human Win
-          sound.playWin();
-          triggerVictoryConfetti();
           setScores((prev) => {
             const next = { ...prev, playerWins: prev.playerWins + 1 };
             saveScores(next);
             return next;
           });
         } else {
-          // Computer Win
-          sound.playLoss();
+          if (currentMode === 'ai') {
+            sound.playLoss();
+          }
           setScores((prev) => {
             const next = { ...prev, computerWins: prev.computerWins + 1 };
             saveScores(next);
@@ -90,16 +93,15 @@ export function useTicTacToe() {
         });
       }
 
-      // Show result modal with a tiny delay for suspense
       setTimeout(() => {
         setShowResultModal(true);
-      }, 550);
+      }, 350);
     },
     [triggerVictoryConfetti]
   );
 
   /**
-   * Starts game when computer makes the opening move
+   * Computer opening move
    */
   const triggerComputerOpening = useCallback((difficulty: Difficulty) => {
     computerThinkingTimeout.current = setTimeout(() => {
@@ -114,19 +116,17 @@ export function useTicTacToe() {
         setBoard(newBoard);
         setTurn('X');
         setGameStatus('playing');
-      }, 500);
+      }, 400);
     }, 50);
   }, []);
 
   /**
-   * Triggers the computer move calculation with simulated thinking delay
+   * Computer move calculation
    */
   const executeComputerMove = useCallback(
     (currentBoard: BoardState, difficulty: Difficulty) => {
       setGameStatus('thinking');
-
-      // Random thinking time between 400ms and 650ms for realistic arcade responsiveness
-      const delay = Math.floor(Math.random() * 250) + 400;
+      const delay = Math.floor(Math.random() * 200) + 350;
 
       computerThinkingTimeout.current = setTimeout(() => {
         const move = getComputerMove(currentBoard, difficulty, 'O', 'X');
@@ -139,9 +139,9 @@ export function useTicTacToe() {
 
           const win = checkWinner(newBoard);
           if (win) {
-            handleGameEnd(win, false);
+            handleGameEnd(win, false, 'ai');
           } else if (isBoardFull(newBoard)) {
-            handleGameEnd(null, true);
+            handleGameEnd(null, true, 'ai');
           } else {
             setTurn('X');
             setGameStatus('playing');
@@ -152,23 +152,46 @@ export function useTicTacToe() {
     [handleGameEnd]
   );
 
-  // Initialize opening move if computer is configured to play first
+  // Initialize storage values on client mount
   useEffect(() => {
-    sound.setSoundEnabled(preferences.soundEnabled);
-    if (preferences.startingPlayer === 'computer') {
-      triggerComputerOpening(preferences.difficulty);
-    }
-    // Only run on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const timer = setTimeout(() => {
+      const storedScores = loadScores();
+      const storedPrefs = loadPreferences();
+      setScores(storedScores);
+      setPreferences(storedPrefs);
+      sound.setSoundEnabled(storedPrefs.soundEnabled);
+
+      if (storedPrefs.theme === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+      }
+
+      if (storedPrefs.gameMode === 'ai' && storedPrefs.startingPlayer === 'computer') {
+        triggerComputerOpening(storedPrefs.difficulty);
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [triggerComputerOpening]);
 
   // Sync preferences and sound
   useEffect(() => {
     sound.setSoundEnabled(preferences.soundEnabled);
     savePreferences(preferences);
+
+    if (preferences.theme === 'light') {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    }
   }, [preferences]);
 
-  // Clean up any pending timeouts on unmount
+  // Clean up timeouts
   useEffect(() => {
     return () => {
       if (computerThinkingTimeout.current) {
@@ -178,44 +201,52 @@ export function useTicTacToe() {
   }, []);
 
   /**
-   * Human player clicks a cell
+   * Handle user clicking cell
    */
   const handleCellClick = useCallback(
     (index: number) => {
-      // Ignore click if cell occupied, game over, or computer is thinking
-      if (
-        board[index] !== null ||
-        gameStatus !== 'playing' ||
-        turn !== 'X'
-      ) {
+      if (board[index] !== null || gameStatus !== 'playing') {
         return;
       }
 
+      if (preferences.gameMode === 'ai' && turn !== 'X') {
+        return;
+      }
+
+      const currentPiece = turn;
       const newBoard = [...board];
-      newBoard[index] = 'X';
-      sound.playMoveX();
+      newBoard[index] = currentPiece;
+
+      if (currentPiece === 'X') {
+        sound.playMoveX();
+      } else {
+        sound.playMoveO();
+      }
       setBoard(newBoard);
 
       const win = checkWinner(newBoard);
       if (win) {
-        handleGameEnd(win, false);
+        handleGameEnd(win, false, preferences.gameMode);
         return;
       }
 
       if (isBoardFull(newBoard)) {
-        handleGameEnd(null, true);
+        handleGameEnd(null, true, preferences.gameMode);
         return;
       }
 
-      // Switch to Computer's turn
-      setTurn('O');
-      executeComputerMove(newBoard, preferences.difficulty);
+      if (preferences.gameMode === 'ai') {
+        setTurn('O');
+        executeComputerMove(newBoard, preferences.difficulty);
+      } else {
+        setTurn((prev) => (prev === 'X' ? 'O' : 'X'));
+      }
     },
-    [board, gameStatus, turn, preferences.difficulty, executeComputerMove, handleGameEnd]
+    [board, gameStatus, turn, preferences.gameMode, preferences.difficulty, executeComputerMove, handleGameEnd]
   );
 
   /**
-   * Restarts the current match
+   * Restarts current match
    */
   const restartMatch = useCallback(() => {
     if (computerThinkingTimeout.current) {
@@ -226,16 +257,35 @@ export function useTicTacToe() {
     setWinningLine(null);
     setShowResultModal(false);
 
-    if (preferences.startingPlayer === 'computer') {
+    if (preferences.gameMode === 'ai' && preferences.startingPlayer === 'computer') {
       triggerComputerOpening(preferences.difficulty);
     } else {
       setTurn('X');
       setGameStatus('playing');
     }
-  }, [preferences.startingPlayer, preferences.difficulty, triggerComputerOpening]);
+  }, [preferences.gameMode, preferences.startingPlayer, preferences.difficulty, triggerComputerOpening]);
 
   /**
-   * Change difficulty setting
+   * Switch game mode (vs AI or 2-Player Local)
+   */
+  const setGameMode = useCallback(
+    (gameMode: GameMode) => {
+      sound.playClick();
+      setPreferences((prev) => ({ ...prev, gameMode }));
+      if (computerThinkingTimeout.current) {
+        clearTimeout(computerThinkingTimeout.current);
+      }
+      setBoard(INITIAL_BOARD);
+      setWinningLine(null);
+      setShowResultModal(false);
+      setTurn('X');
+      setGameStatus('playing');
+    },
+    []
+  );
+
+  /**
+   * Change difficulty
    */
   const setDifficulty = useCallback((difficulty: Difficulty) => {
     sound.playClick();
@@ -243,7 +293,7 @@ export function useTicTacToe() {
   }, []);
 
   /**
-   * Change starting player setting
+   * Change starting player
    */
   const setStartingPlayer = useCallback(
     (startingPlayer: StartingPlayerOption) => {
@@ -256,18 +306,19 @@ export function useTicTacToe() {
       setBoard(INITIAL_BOARD);
       setWinningLine(null);
       setShowResultModal(false);
-      if (startingPlayer === 'computer') {
+
+      if (preferences.gameMode === 'ai' && startingPlayer === 'computer') {
         triggerComputerOpening(preferences.difficulty);
       } else {
         setTurn('X');
         setGameStatus('playing');
       }
     },
-    [preferences.difficulty, triggerComputerOpening]
+    [preferences.gameMode, preferences.difficulty, triggerComputerOpening]
   );
 
   /**
-   * Toggle sound effects
+   * Toggle sound
    */
   const toggleSound = useCallback(() => {
     setPreferences((prev) => {
@@ -281,7 +332,18 @@ export function useTicTacToe() {
   }, []);
 
   /**
-   * Reset all persistent scores
+   * Toggle Theme
+   */
+  const toggleTheme = useCallback(() => {
+    sound.playClick();
+    setPreferences((prev) => {
+      const nextTheme: ThemeMode = prev.theme === 'dark' ? 'light' : 'dark';
+      return { ...prev, theme: nextTheme };
+    });
+  }, []);
+
+  /**
+   * Reset scores
    */
   const resetScores = useCallback(() => {
     sound.playRestart();
@@ -305,9 +367,11 @@ export function useTicTacToe() {
     handleCellClick,
     restartMatch,
     resetScores,
+    setGameMode,
     setDifficulty,
     setStartingPlayer,
     toggleSound,
+    toggleTheme,
     closeResultModal,
   };
 }

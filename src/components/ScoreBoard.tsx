@@ -1,60 +1,57 @@
 'use client';
 
 import React from 'react';
-import { ScoreState } from '@/types/game';
-import { RotateCcw } from 'lucide-react';
+import { GameMode, ScoreState } from '@/types/game';
 
 interface ScoreBoardProps {
   scores: ScoreState;
+  gameMode: GameMode;
   onResetScores: () => void;
 }
 
-export const ScoreBoard: React.FC<ScoreBoardProps> = ({ scores, onResetScores }) => {
+export const ScoreBoard: React.FC<ScoreBoardProps> = ({ scores, gameMode, onResetScores }) => {
+  const p2Label = gameMode === 'ai' ? 'CPU (O)' : 'P2 (O)';
+
   return (
-    <div className="w-full max-w-[420px] mx-auto flex flex-col gap-2">
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-        {/* Player X Score Card */}
-        <div className="glass-panel rounded-2xl p-2.5 sm:p-3 text-center border-t-2 border-t-cyan-400 relative overflow-hidden group">
-          <div className="text-[10px] sm:text-xs font-semibold tracking-wider uppercase text-cyan-400/80 mb-0.5">
-            Player (X)
+    <div className="w-full font-mono text-xs">
+      <div className="flex justify-between items-center mb-1.5 text-[11px] uppercase tracking-wider text-[var(--muted)]">
+        <span>SCORE</span>
+        <button
+          type="button"
+          onClick={onResetScores}
+          className="hover:underline cursor-pointer text-[10px]"
+        >
+          [reset]
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 border border-theme divide-x divide-theme bg-[var(--bg)] text-center">
+        <div className="py-2.5 px-2">
+          <div className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
+            {gameMode === 'ai' ? 'Player (X)' : 'P1 (X)'}
           </div>
-          <div className="text-xl sm:text-2xl font-black text-cyan-300 font-mono tracking-tight drop-shadow-[0_0_8px_rgba(0,240,255,0.4)]">
+          <div className="text-xl font-bold mt-0.5 text-[var(--fg)]">
             {scores.playerWins}
           </div>
         </div>
 
-        {/* Ties Score Card */}
-        <div className="glass-panel rounded-2xl p-2.5 sm:p-3 text-center border-t-2 border-t-purple-400 relative overflow-hidden group">
-          <div className="text-[10px] sm:text-xs font-semibold tracking-wider uppercase text-purple-400/80 mb-0.5">
+        <div className="py-2.5 px-2">
+          <div className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
             Ties
           </div>
-          <div className="text-xl sm:text-2xl font-black text-purple-300 font-mono tracking-tight drop-shadow-[0_0_8px_rgba(168,85,247,0.4)]">
+          <div className="text-xl font-bold mt-0.5 text-[var(--fg)]">
             {scores.draws}
           </div>
         </div>
 
-        {/* Computer O Score Card */}
-        <div className="glass-panel rounded-2xl p-2.5 sm:p-3 text-center border-t-2 border-t-orange-500 relative overflow-hidden group">
-          <div className="text-[10px] sm:text-xs font-semibold tracking-wider uppercase text-orange-400/80 mb-0.5">
-            CPU (O)
+        <div className="py-2.5 px-2">
+          <div className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
+            {p2Label}
           </div>
-          <div className="text-xl sm:text-2xl font-black text-orange-400 font-mono tracking-tight drop-shadow-[0_0_8px_rgba(255,119,0,0.4)]">
+          <div className="text-xl font-bold mt-0.5 text-[var(--fg)]">
             {scores.computerWins}
           </div>
         </div>
-      </div>
-
-      {/* Subtle Reset Scores Button */}
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={onResetScores}
-          className="text-[11px] text-slate-500 hover:text-slate-300 flex items-center gap-1 transition-colors px-2 py-1 rounded-md hover:bg-white/5 cursor-pointer"
-          title="Reset score counts"
-        >
-          <RotateCcw className="w-3 h-3" />
-          <span>Reset scores</span>
-        </button>
       </div>
     </div>
   );
